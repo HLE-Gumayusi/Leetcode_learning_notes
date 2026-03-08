@@ -111,6 +111,8 @@ def canJump(self, nums: List[int]) -> bool:
                 if s == 0:
                     return False
         return True
+···
+
 这个代码虽然能通过测试用例，但是效率很低。后来问ai才知道其实可以使用一个变量来记录当前能够跳跃的最远位置，如果在遍历过程中发现当前索引超过了这个最远位置，就说明无法到达最后一个位置了。
 
 ```python
@@ -142,7 +144,7 @@ def jump(self, nums: List[int]) -> int:
         return n
 ```
 
-这个代码虽然能通过测试用例，但是效率很低。后来问ai才知道其实可以使用一个变量来记录当前能够跳跃的最远位置和下一个能够跳跃的最远位置，如果当前索引超过了当前能够跳跃的最远位置，就说明需要增加一次跳跃了。
+这个代码虽然能通过测试用例，但是效率很低。后来问ai才知道其实可以使用两个变量，一个记录当前能够跳跃的最远位置，一个记录下一个能够跳跃的最远位置。
 
 ```python
 def jump(self, nums: List[int]) -> int:
@@ -157,4 +159,539 @@ def jump(self, nums: List[int]) -> int:
                 current_end = farthest
 
         return jumps
+```
+
+## 11. H-Index
+题目描述：给定一个整数数组citations，表示研究人员的被引次数。计算研究人员的h指数。h指数的定义是：一个研究人员有h篇论文分别被引用了至少h次。
+
+这个题目很简单，只需要给数组从大到小排序，然后找到第一个数值小于自己的位次（索引加1）的数字，返回它的索引即可。
+
+```python
+def hIndex(self, citations: List[int]) -> int:
+        if not len(citations):
+            return 0
+        citations.sort(reverse = True)
+        for i in range(len(citations)):
+            if citations[i] < i + 1:
+                return i
+        return len(citations)
+```
+
+这个代码使用了内置sort函数，时间复杂度为O(n log n)。通过询问ai找到了更高效的算法：
+
+```python
+def hIndex(self, citations: List[int]) -> int:
+        n = len(citations)
+        buckets = [0] * (n + 1)
+
+        for c in citations:
+            if c >= n:
+                buckets[n] += 1
+            else:
+                buckets[c] += 1
+
+        count = 0
+        for i in range(n, -1, -1):
+            count += buckets[i]
+            if count >= i:
+                return i
+
+        return 0
+```
+
+这个算法直接记录了每个引用次数的论文数量，然后从高到低累加，找到第一个满足条件的h指数。时间复杂度为O(n)。
+
+## 12. Insert Delete GetRandom O(1)
+题目描述：实现一个RandomizedSet类，支持以下操作：insert(val)：当元素val不存在时，向集合中插入该项，并返回true；当元素val存在时，返回false。remove(val)：当元素val存在时，从集合中移除该项，并返回true；当元素val不存在时，返回false。getRandom()：随机返回现有集合中的一项。每个元素应该有相同的概率被返回。
+
+以上每个操作都应该在平均时间复杂度O(1)内完成。
+
+我不知道有什么O(1)的算法来实现这个功能，后来问ai才知道哈希表可以满足插入和删除的O(1)时间复杂度，动态数组可以满足随机访问的O(1)时间复杂度。
+
+```python
+import random
+
+class RandomizedSet:
+    def __init__(self):
+        # 存储具体的值
+        self.nums = []
+        # 存储 值 -> 索引 的映射
+        self.val_to_index = {}
+
+    def insert(self, val: int) -> bool:
+        if val in self.val_to_index:
+            return False
+        self.val_to_index[val] = len(self.nums)
+        self.nums.append(val)
+        return True
+
+    def remove(self, val: int) -> bool:
+        if val not in self.val_to_index:
+            return False
+        
+        # 1. 找到待删元素的索引和数组最后一个元素
+        idx = self.val_to_index[val]
+        last_val = self.nums[-1]
+        
+        # 2. 将最后一个元素换到待删位置
+        self.nums[idx] = last_val
+        self.val_to_index[last_val] = idx
+        
+        # 3. 删除最后一个元素并清理哈希表
+        self.nums.pop()
+        del self.val_to_index[val]
+        return True
+
+    def getRandom(self) -> int:
+        return random.choice(self.nums)
+```
+
+这里关于删除的方法很巧妙，我没有想到。
+
+## 13. Product of Array Except Self
+题目描述：给定一个长度为n的整数数组nums，其中n > 1，返回一个输出数组output，其中output[i]等于nums中除了nums[i]之外其余各元素的乘积。
+
+这题不允许使用除法，我想了很久也只能实现O(n^2)的算法，最后问ai才得到了一个O(n)的算法。这个算法的核心思想是使用两个数组，一个记录从左到右的乘积，一个记录从右到左的乘积，然后将这两个数组对应位置的乘积相乘就得到了最终结果。
+
+```python
+def productExceptSelf(self, nums: List[int]) -> List[int]:
+        answer = [1]*len(nums)
+        left = 1
+        for i in range(len(nums)):
+            answer[i] = left
+            left *= nums[i]
+        right = 1
+        for j in range(len(nums)-1, -1, -1):
+            answer[j] *= right
+            right *= nums[j]
+        return answer
+```
+
+在for循环进行中，左边的乘积逐渐累积，然后再让answer乘以右边的乘积。
+
+## 14. Gas Station
+题目描述：在一条环路上有N个加油站，其中第i个加油站有gas[i]升汽油。你有一辆油箱容量无限的汽车，从第i个加油站开到第i+1个加油站需要cost[i]升汽油。你从其中的一个加油站出发，开始时油箱为空。给定两个整数数组gas和cost，返回你可以完成环路的起始加油站的编号，如果不能完成环路则返回-1。
+
+题目保证如果存在解，则它是唯一的。我创建了一个新列表，第i个元素等于gas[i] - cost[i]，这代表车经过这个站点时油量的变化量。我开始的想法是让车从任意一个站点出发，走一圈下来，看哪个站点的油量最低（允许负数），这样从这个站点出发就能保证全程油量不小于0。当然，如果总gas小于总cost，那就直接返回-1了。
+
+后来发现一个一个计算求和太麻烦，只需要从某一个点出发，当油量小于零时，说明这是一个油量的低谷，于是取下一个点作为新的起点。
+
+```python
+def canCompleteCircuit(self, gas: List[int], cost: List[int]) -> int:
+        l = []
+        for i in range(len(gas)):
+            l.append(gas[i] - cost[i])
+        if sum(l) < 0:
+            return -1
+        min_idx = 0
+        sum_gas = 0
+        for j in range(len(gas)):
+            sum_gas += l[j]
+            if sum_gas < 0:
+                min_idx = j + 1
+                sum_gas = 0
+        return min_idx
+```
+
+后来发现不需要这个新列表l。
+
+## 15. Candy
+题目描述：有N个孩子站成一排。每个孩子都有一个评分。你需要按照以下要求，给这些孩子分发糖果：
+1. 每个孩子至少分配到一个糖果。
+2. 相邻的孩子中，评分较高的孩子必须获得更多的糖果。
+你需要给孩子们分发糖果，计算并返回需要准备的最少糖果数。
+
+我的想法是对于每一个孩子，只需要考虑他左侧的最长递增序列和右侧的最长递增序列，取两者的最大值就是这个孩子需要的糖果数。最后把所有孩子需要的糖果数加起来就是总数了。
+
+```python
+def candy(self, ratings: List[int]) -> int:
+        n = len(ratings)
+        left_up = [1]
+        for i in range(1, n):
+            if ratings[i] > ratings[i - 1]:
+                left_up.append(left_up[i - 1] + 1)
+                continue
+            left_up.append(1)
+        right_down = [1]
+        for i in range(n-2, -1, -1):
+            if ratings[i] > ratings[i + 1]:
+                right_down.insert(0, right_down[0] + 1)
+                continue
+            right_down.insert(0, 1)
+        candy_num = []
+        for i in range(n):
+            candy_num.append(max(left_up[i], right_down[i]))
+        return sum(candy_num)
+```
+
+运行发现耗时很长，原来是因为insert函数的时间复杂度很高。可以采用预先创建一个列表，然后从后往前填充right_down列表来优化。
+
+除此之外，还可以先给每个孩子分配一个糖果，然后从左到右遍历一次，如果当前孩子的评分比前一个孩子高，就把当前孩子的糖果数设置为前一个孩子的糖果数加1；然后从右到左遍历一次，如果当前孩子的评分比后一个孩子高，并且当前孩子的糖果数不大于后一个孩子的糖果数，就把当前孩子的糖果数设置为后一个孩子的糖果数加1。
+
+这是我做的第一个Hard难度的题目，感觉难度并不大。
+
+## 16. Trapping Rain Water
+题目描述：给定一个非负整数数组height，其中每个元素代表一个柱子的高度，计算在这些柱子之间能够存储多少雨水。
+
+这个题目我见过，对于每一个柱子上能积攒的水量，只需要考虑它左边的最高柱子和右边的最高柱子中较矮的那个，减去当前柱子的高度就是这个柱子上能积攒的水量。所以我写了两个列表，分别记录在i位置时左边最高柱子和右边最高柱子的高度。
+
+```python
+def trap(self, height: List[int]) -> int:
+        n = len(height)
+        left_max = [height[0]] * n
+        for i in range(1, n):
+            if height[i] > left_max[i - 1]:
+                left_max[i] = height[i]
+                continue
+            left_max[i] = left_max[i - 1]
+        right_max = [height[n-1]] * n
+        for i in range(n-2, -1, -1):
+            if height[i] > right_max[i + 1]:
+                right_max[i] = height[i]
+                continue
+            right_max[i] = right_max[i + 1]
+        water = [0] * n
+        for i in range(1, n-1):
+            water[i] = max(0, min(left_max[i], right_max[i]) - height[i])
+        return sum(water)
+```
+
+这个算法效率较低，可以使用双指针来优化。使用两个指针分别指向数组的两端。
+
+```python
+def trap(self, height: List[int]) -> int:
+        if not height:
+            return 0
+        left, right = 0, len(height) - 1
+        left_max, right_max = height[left], height[right]
+        water = 0
+
+        while left < right:
+            if left_max < right_max:
+                left += 1
+                left_max = max(left_max, height[left])
+                water += max(0, left_max - height[left])
+            else:
+                right -= 1
+                right_max = max(right_max, height[right])
+                water += max(0, right_max - height[right])
+
+        return water
+```
+
+这个算法两个指针从两头移动到中间，利用指针移动过程中最大值不断变大的特性可以稳定找到每一个柱子的积水量。
+
+## 17. Roman to Integer
+题目描述：给定一个罗马数字，将其转换为整数。输入确保在1到3999的范围内。
+
+这个题目看起来很麻烦，后来想想只需要按照对应关系把每个罗马数字转换成对应的整数，唯一的特殊情况也可以用条件语句来处理。
+
+```python
+def romanToInt(self, s: str) -> int:
+        m = 0
+        s = s + 'o'
+        for i in range(len(s)-1):
+            if s[i] == 'M':
+                m += 1000
+            elif s[i] == 'D':
+                m += 500
+            elif s[i] == 'C':
+                if s[i+1] == 'D' or s[i+1] == 'M':
+                    m -= 100
+                else:
+                    m += 100
+            elif s[i] == 'L':
+                m += 50
+            elif s[i] == 'X':
+                if s[i+1] == 'L' or s[i+1] == 'C':
+                    m -= 10
+                else:
+                    m += 10
+            elif s[i] == 'V':
+                m += 5
+            elif s[i] == 'I':
+                if s[i+1] == 'X' or s[i+1] == 'V':
+                    m -= 1
+                else:
+                    m += 1
+        return m
+```
+这里为了防止越界访问s[i+1]，在s的末尾添加了一个字符'o'，这个字符不会影响结果。
+
+这个代码效率不高，可以使用一个字典来存储罗马数字和对应的整数，然后遍历字符串，根据当前字符和下一个字符的值来决定是加还是减。
+
+```python
+def romanToInt(self, s: str) -> int:
+        roman_dict = {
+            'I': 1,
+            'V': 5,
+            'X': 10,
+            'L': 50,
+            'C': 100,
+            'D': 500,
+            'M': 1000
+        }
+        total = 0
+        for i in range(len(s) - 1):
+            if roman_dict[s[i]] < roman_dict[s[i + 1]]:
+                total -= roman_dict[s[i]]
+            else:
+                total += roman_dict[s[i]]
+        total += roman_dict[s[-1]]
+        return total
+```
+
+## 18. Integer to Roman
+题目描述：给定一个整数，将其转换为罗马数字。输入确保在1到3999的范围内。
+
+只需要写一个字典来存储整数和对应的罗马数字，然后按照从大到小的顺序遍历这个字典，依次将整数转换成罗马数字。
+
+```python
+def intToRoman(self, num: int) -> str:
+        val_map = {
+        1000: "M", 900: "CM", 500: "D", 400: "CD",
+        100: "C", 90: "XC", 50: "L", 40: "XL",
+        10: "X", 9: "IX", 5: "V", 4: "IV", 1: "I"
+    }
+    # 接下来的代码也必须保持在同一缩进层级
+        res = ""
+        for val in val_map:
+            while num >= val:
+                res += val_map[val]
+                num -= val
+        return res
+```
+
+## 19. Length of Last Word
+题目描述：给定一个字符串s，返回其最后一个单词的长度。单词是指仅由字母组成、不包含任何空格的最大子字符串。
+
+我的想法是找到最后一个单词之前的空格的位置，再找到最后一个单词结束的位置，然后计算它们之间的距离就是最后一个单词的长度了。
+
+```python
+def lengthOfLastWord(self, s: str) -> int:
+        last_space = -1
+        for i in range(len(s)-1):
+            if s[i] == ' ' and s[i+1] != ' ':
+                last_space = i
+        end = len(s) - 1
+        for i in range(len(s)-1, -1, -1):
+            if s[i] != ' ':
+                end = i
+                break
+        return end - last_space
+```
+
+这个代码效率不高，可以直接从字符串的末尾开始遍历，跳过末尾的空格，然后计算最后一个单词的长度。
+
+## 20. Longest Common Prefix
+题目描述：编写一个函数来查找字符串数组中的最长公共前缀。如果不存在公共前缀，返回空字符串""。
+
+我的做法是记录第一个字符串，然后看看它和其他字符串的公共前缀是什么，更新最长公共前缀，最后返回即可。
+
+```python
+def longestCommonPrefix(self, strs: List[str]) -> str:
+        first = strs[0]
+        common = len(first)
+        for word in strs:
+            common = min(common, len(word))
+            for i in range(len(word)):
+                if i >= len(first) or word[i] != first[i]:
+                    common = min(common, i)
+                    break
+        if common == 0:
+            return ''
+        return first[:common]
+```
+
+这个代码效率不高，可以使用zip函数来同时遍历所有字符串的字符，找到第一个不相同的字符位置，然后返回公共前缀。
+
+```python
+def longestCommonPrefix(self, strs: List[str]) -> str:
+        if not strs:
+            return ""
+        prefix = ""
+        for chars in zip(*strs):
+            if len(set(chars)) == 1:
+                prefix += chars[0]
+            else:
+                break
+        return prefix
+```
+
+## 21. Reverse Words in a String
+题目描述：给定一个字符串s，反转字符串中单词的顺序。单词是由非空格字符组成的字符串。s中至少存在一个单词。输入字符串s可能在前面、后面或者单词间包含多余的空格。返回单词顺序反转且单词之间仅用一个空格分隔的字符串。
+
+我的想法是创建一个列表来存储单词，然后从字符串的末尾开始遍历，找到每个单词并添加到列表中，最后将列表中的单词用空格连接起来返回。
+
+```python
+def reverseWords(self, s: str) -> str:
+        start = -1
+        end = 0
+        word_list = []
+        for i in range(len(s)-1):
+            if s[i] == ' ' and s[i+1] != ' ':
+                start = i
+            if s[i] != ' ' and s[i+1] == ' ':
+                end = i
+                word_list.append(s[start+1: end+1])
+        if s[-1] != ' ':
+            word_list.append(s[start+1: ])
+        string = ''
+        for i in range(len(word_list)-1, -1, -1):
+            string = string + word_list[i] + ' '
+        return(string[:len(string)-1])
+```
+
+这个代码效率不高，可以直接使用split函数来分割字符串，然后反转列表，最后用join函数连接起来。
+
+```python
+def reverseWords(self, s: str) -> str:
+        words = s.split()
+        return ' '.join(reversed(words))
+```
+
+我第一次见到函数split和join，split的作用是将字符串按照空格分割成一个列表，join的作用是将列表中的元素用空格连接成一个字符串。
+
+## 22. ZigZag Conversion
+题目描述：将一个给定字符串根据给定的行数，以从上往下、从左到右进行Z字形排列。
+
+我创建了一个列表和两个变量，一个代表当前属于哪一行，一个代表当前的方向。
+
+```python
+def convert(self, s: str, numRows: int) -> str:
+        if numRows == 1:
+            return s
+        count = 0
+        add = 1
+        li = ['' for i in range(numRows)] 
+        for char in s:
+            li[count] += char
+            if count == numRows - 1:
+                add = -1
+            elif count == 0:
+                add = 1        
+            count += add   
+        return ''.join(li)
+```
+
+这个代码用到了上一题的join函数。
+
+## 23. Find the Index of the First Occurrence in a String
+题目描述：给定两个字符串needle和haystack，返回needle在haystack中第一次出现的索引，如果不存在，则返回-1。
+
+这个题目我直接使用了内置的find函数来实现。
+
+```python
+def strStr(self, haystack: str, needle: str) -> int:
+        return haystack.find(needle)
+```
+
+如果要自己实现，我想到了一种O（nm）的算法，后来学到了一种O（n+m）的算法，叫做KMP算法。这个算法的核心思想是利用已经匹配过的部分来避免重复比较，从而提高效率。
+
+## 24. Text Justification
+题目描述：给定一个单词数组和一个长度maxWidth，重新排版单词，使得每行恰好有maxWidth个字符，并且左右两端都对齐。你应该使用尽可能多的单词填充每一行。单词之间应当使用至少一个空格分隔。额外的空格应该尽可能平均分配在单词之间。如果不能平均分配，左侧的空格数应该多于右侧的空格数。对于最后一行，单词应该左对齐，并且在末尾添加额外的空格使其达到maxWidth长度。
+
+我的想法分三部分，第一部分是把单词按长度分成几组，保证每一组都是不超过maxWidth的最大长度；第二部分是写一个空格分配函数，根据单词数量和剩余空格数量来分配空格；第三部分是把每一组的单词和空格连接起来，最后返回一个列表。
+
+```python
+def fullJustify(self, words: List[str], maxWidth: int) -> List[str]:
+        li = [[]]
+        row = 0
+        
+        for word in words:
+            # 当前行已有的单词数是 len(li[row])
+            # 如果加入这个单词，单词之间的空格数至少需要 len(li[row]) 个
+            # 逻辑：当前单词总长度 + 新单词长度 + 单词间空格数
+            current_word_len = sum(len(w) for w in li[row])
+            if current_word_len + len(li[row]) + len(word) > maxWidth:
+                # 换行
+                li.append([word])
+                row += 1
+            else:
+                # 同一行
+                li[row].append(word)
+        def space(space_num, que):
+            if not space_num:
+                return ["" for i in range(que)]
+            if not que:
+                return [' ' * space_num]
+            n = space_num // que
+            m = space_num % que
+            n_space = ' ' * n
+            N_space = ' ' * (n+1)
+            lis = []
+            for i in range(que):
+                if i < m:
+                    lis.append(N_space)
+                else:
+                    lis.append(n_space)
+            return lis
+        res = []
+        for i, line in enumerate(li):
+            line_len = sum(len(word) for word in line)
+            
+            # 情况 1：最后一行 或者 该行只有一个单词 (左对齐)
+            if i == len(li) - 1 or len(line) == 1:
+                s = " ".join(line)
+                res.append(s + " " * (maxWidth - len(s)))
+                
+            # 情况 2：普通行 (左右对齐，使用你的 space 函数)
+            else:
+                total_space = maxWidth - line_len
+                que = len(line) - 1
+                spaces = space(total_space, que) # 调用你的 space 函数
+                
+                row_str = ""
+                for j in range(len(line) - 1):
+                    row_str += line[j] + spaces[j]
+                row_str += line[-1]
+                res.append(row_str)
+                
+        return res
+```
+
+第一部分和第三部分利用了ai的帮助。
+
+后来ai告诉我可以用divmod函数来同时得到商和余数，这样就不需要分别计算n和m了。
+
+## 25. Valid Palindrome
+题目描述：给定一个字符串，验证它是否是回文串，只考虑字母和数字字符，可以忽略字母的大小写。
+
+我的做法是先遍历一遍，删除所有非字母数字的字符，并把所有字母转换成小写，然后再判断这个字符串是否是回文串。
+
+```python
+def isPalindrome(self, s: str) -> bool:
+        word = ''
+        for char in s:
+            if ord(char) >= 48 and ord(char) <= 57:
+                word += char
+            elif ord(char) >= 65 and ord(char) <= 90:
+                word += chr(ord(char)+32)
+            elif ord(char) >= 97 and ord(char) <= 122:
+                word += char
+        i = 0
+        j = len(word) -1
+        while i < j:
+            if word[i] != word[j]:
+                return False
+            i += 1
+            j -= 1
+        return True
+```
+
+可以使用内置的isalnum函数来判断一个字符是否是字母或数字，使用lower函数来将字母转换成小写，这样代码会更简洁。第一部分也可以省略，直接使用双指针从两端开始遍历字符串，跳过非字母数字的字符，并比较字母的大小写。
+
+```python
+def isPalindrome(self, s: str) -> bool:
+        left, right = 0, len(s) - 1
+        while left < right:
+            while left < right and not s[left].isalnum():
+                left += 1
+            while left < right and not s[right].isalnum():
+                right -= 1
+            if s[left].lower() != s[right].lower():
+                return False
+            left += 1
+            right -= 1
+        return True
 ```
