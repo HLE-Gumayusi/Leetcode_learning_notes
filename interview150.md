@@ -695,3 +695,207 @@ def isPalindrome(self, s: str) -> bool:
             right -= 1
         return True
 ```
+
+## 26. Is Subsequence
+题目描述：给定字符串s和t，判断s是否是t的子序列。一个字符串的子序列是指在不改变字符顺序的情况下，删除某些字符（也可以不删除）后形成的新字符串。
+
+很简单，不写代码了。
+
+## 27. Two Sum II - Input array is sorted
+题目描述：给定一个已按照升序排列的整数数组numbers，找到两个数使它们相加之和等于目标数target。函数应该返回这两个下标值index1和index2，其中index1必须小于index2。注意：返回的下标值（index1和index2）不是从零开始的。
+
+很简单，还是双指针。
+
+## 28. Container With Most Water
+题目描述：给定n个非负整数a1，a2，...，an，每个数代表坐标中的一个点(i, ai)。在坐标内画n条垂直线，垂直线i的两个端点分别为(i, ai)和(i, 0)。找出其中的两条线，使得它们与x轴共同构成的容器可以容纳最多的水。
+
+一开始，我想到，一个数可以增加至它左边和右边最高值的较小值，此时不会影响答案。于是，经过这样操作后，数组变成一个先递增后递减的数组。此时按照不同高度分组，考察每一个高度下的最大宽度，全部记录下来，最后取最大值就是答案了。后来我简化了这个过程，从两端开始，先记录两端形成的容器积水量，然后移动较短的一端，更新最大值，直到两端相遇。这样可以记录到所有的容积极大值，最大值也在其中。
+
+我又简化了整个流程，不需要把数组变成一个先递增后递减的数组了，直接使用双指针从两端开始，移动较短的一端，更新最大值，直到两端相遇。
+
+```python
+def maxArea(self, height: List[int]) -> int:
+        front = 0
+        rear = len(height)-1
+        max_area = 0
+        while front < rear:
+            max_area = max(max_area, min(height[front], height[rear])* (rear - front))
+            if height[front] > height[rear]:
+                rear -= 1
+            else:
+                front += 1
+        return max_area
+```
+
+## 29. 3Sum
+题目描述：给定一个包含n个整数的数组nums，判断nums中是否存在三个元素a，b，c，使得a + b + c = 0？找出所有满足条件且不重复的三元组。
+
+我一开始的想法是先把数组变成一个哈希表，然后遍历数组两遍，看看是否存在一个数等于-(a+b)，如果存在就把这个三元组加入结果中。后来发现这样会有重复的三元组，所以需要对结果进行去重。问ai得到一个算法，先对数组排序，然后开始遍历，寻找以这个元素为最小值的三元组，使用双指针来寻找剩下的两个数，在这个过程中如果当前元素已经大于0，直接结束，当前元素和前一个相同时，直接跳过。后面利用while函数来跳过重复的元素。
+
+不写代码了。
+
+## 30. Minimum Size Subarray Sum
+题目描述：给定一个含有n个正整数的数组和一个正整数s，找出该数组中满足其和≥s的长度最小的连续子数组，并返回其长度。如果不存在符合条件的连续子数组，返回0。
+
+我的方法是先从头开始加，加到target时开始移动这一块，每次从后面加一个，然后前面减若干个，直到不满足条件了，再从后面加一个，如此循环，直到后面加到数组末尾了。最后返回最短的长度。
+
+中途遇到很多次越界访问的问题，通过ai解决。
+
+## 31. Longest Substring Without Repeating Characters
+题目描述：给定一个字符串，请你找出其中不含有重复字符的最长子串的长度。
+
+本题的题目用词不准确，repeating改成duplicate更合适。我的做法是创建一个列表来存储当前的子串，然后遍历字符串，如果当前字符不在列表中，就把它加入列表；如果当前字符在列表中，就把它之前的部分删除掉，直到这个字符不在列表中了，然后再把这个字符加入列表。每次更新最长长度。这个算法需要多次删除，时间复杂度很低，后来知道可以用一个哈希表来记录每个字符最后一次出现的位置，同样用左指针和右指针，每次只需要检测当前字符是否在哈希表中，并且它的最后一次出现位置是否在当前窗口内，如果是，就把左指针移动到这个位置的下一个位置，然后更新哈希表中这个字符的位置，最后更新最长长度。
+
+```python
+def lengthOfLongestSubstring(self, s: str) -> int:
+        left = 0
+        n = len(s)
+        length = 0
+        current_str = {}
+        for right in range(n):
+            if s[right] in current_str and current_str[s[right]] >= left:
+                left = current_str[s[right]] + 1
+            current_str[s[right]] = right
+            length = max(length, right - left +1)
+        return length
+```
+
+## 32. Substring with Concatenation of All Words
+题目描述：给定一个字符串s和一些长度相同的单词words，找出s中恰好可以由words中所有单词串联形成的子串的起始位置。注意子串要与words中的单词完全匹配，中间不能有其他字符，但不需要考虑words中单词串联的顺序。
+
+这个题目很难，我自己写了一个窗口每次只滑动一个字符的算法，效率很低，后来发现可以每次滑动n个字符，n是word的长度，同时从0，1，...，n-1这n个位置开始滑动，这样就能保证每次滑动的都是一个完整的单词了。这个算法的优势是可以根据滑动中新的词在不在words中而直接调整窗口的大小，而不需要每次都检查整个窗口中的单词是否满足条件了。我直接附上ai的代码。
+
+```python
+from collections import Counter
+
+class Solution:
+    def findSubstring(self, s: str, words: List[str]) -> List[int]:
+        if not s or not words: return []
+        
+        n, m = len(words[0]), len(words)
+        total_len = n * m
+        word_count = Counter(words)
+        res = []
+        
+        # 遍历所有可能的起始偏移量 (0 到 n-1)
+        for i in range(n):
+            left = i
+            right = i
+            current_count = Counter()
+            
+            while right + n <= len(s):
+                # 1. 提取当前单词
+                word = s[right : right + n]
+                right += n
+                
+                if word in word_count:
+                    current_count[word] += 1
+                    
+                    # 2. 如果当前单词多了，从左侧不断移除，直到频率恢复
+                    while current_count[word] > word_count[word]:
+                        left_word = s[left : left + n]
+                        current_count[left_word] -= 1
+                        left += n
+                    
+                    # 3. 检查窗口是否正好包含所有单词
+                    if right - left == total_len:
+                        res.append(left)
+                else:
+                    # 4. 如果单词根本不在 words 里，整个窗口作废
+                    current_count.clear()
+                    left = right
+                    
+        return res
+```
+
+## 33. Minimum Window Substring
+题目描述：给定一个字符串S和一个字符串T，找到S中包含T所有字符的最小窗口。如果S中不存在这样的窗口，返回空字符串""。如果存在这样的窗口，我们保证它是唯一的。
+
+我参照上一题的做法，写出来一个很臃肿的算法，答案也不对，ai告诉我可以创建一个need字典来记录t中需要的字符和它们的数量，根据窗口里的字符来更新这个need字典，当need字典中的所有值都小于等于0时，说明当前窗口包含了t中的所有字符了，这时就可以尝试缩小窗口了。每次缩小窗口时，如果当前窗口仍然满足条件，就继续缩小；如果不满足条件了，就停止缩小，记录当前窗口的长度和起始位置。最后返回最短的窗口。
+
+这里有一个很有趣的技巧，就是无论当前字符在不在t中，都在need中减去1，这样无论如何这个计数都是负的，后面只需要考虑当前字符的need=0时停止缩小窗口就好了，因为不在t中的字符不影响窗口是否满足条件了。
+
+## 34. Valid Sudoku
+题目描述：判断一个9x9的数独是否有效。只需要根据以下规则，验证已经填入的数字是否有效即可。数字1-9在每一行只能出现一次。数字1-9在每一列只能出现一次。数字1-9在每一个以粗实线分隔的3x3宫内只能出现一次。
+
+我写的代码检查了三遍矩阵，第一遍检查行，第二遍检查列，第三遍检查3x3的宫。后来ai告诉我可以只检查一遍矩阵，在检查每个元素时，同时检查它所在的行、列和3x3的宫是否已经出现过这个数字了，如果出现过了就返回False，否则就把这个数字记录下来。这样就能在一次遍历中完成所有的检查了。
+
+## 35. Spiral Matrix
+题目描述：给定一个包含m x n个元素的矩阵（m行，n列），请按照顺时针螺旋顺序，返回矩阵中的所有元素。
+
+这个题目很经典，按照四个方向来遍历就可以。
+
+## 36. Rotate Matrix
+题目描述：给定一个n x n的二维矩阵matrix表示一个图像。请你将图像顺时针旋转90度。你必须在原地旋转图像，这意味着你需要直接修改输入的二维矩阵。请不要使用另一个矩阵来旋转图像。
+
+我使用两次翻转来实现旋转，第一次翻转是沿着主对角线翻转，第二次翻转是沿着水平中线翻转。这样就能实现顺时针旋转90度了。
+
+## 37. Set Matrix Zeroes
+题目描述：给定一个m x n的矩阵，如果一个元素为0，则将其所在行和列的所有元素都设为0。请使用原地算法。
+
+我参照数独题的算法，使用一个标志矩阵来记录哪些行和列需要被置零，然后再根据这个标志矩阵来修改原矩阵。后来ai告诉我可以使用第一行和第一列来存储这个标志，这样就不需要额外的空间了。首先检查第一行和第一列是否有0，如果有的话就记录下来；然后遍历剩下的矩阵，如果遇到0，就把对应的第一行和第一列的位置也置为0；最后根据第一行和第一列的标志来置零剩下的矩阵，最后再根据之前记录的标志来置零第一行和第一列。
+
+## 38. Life Game
+题目描述：生命游戏
+
+这个问题我没有头绪，后来ai告诉我可以使用一个临时变量来记录每个细胞的状态变化，0表示原来是死的，现在还是死的；1表示原来是活的，现在还是活的；2表示原来是活的，现在变成死的；3表示原来是死的，现在变成活的。这样在遍历矩阵时就可以根据当前细胞周围八个细胞的状态来更新这个临时变量了。最后再遍历一次矩阵，根据这个临时变量来更新细胞的最终状态。
+
+## 39. Ransom Note
+题目描述：给定一个赎金信（ransom）字符串和一个杂志（magazine）字符串，判断赎金信能不能由杂志里面的字符构成。如果可以构成，返回true；否则返回false。杂志字符串中的每个字符只能在赎金信字符串中使用一次。
+
+好简单，创建一个字典来记录杂志中字符的数量就行。
+
+## 40. Isomorphic Strings
+题目描述：给定两个字符串s和t，判断它们是否是同构的。如果s中的字符可以被替换得到t，那么这两个字符串是同构的。所有出现的字符都必须用另一个字符替换，同时保留字符的顺序。两个字符不能映射到同一个字符上，但字符可以映射到自己上。
+
+我创建了两个字典来记录s和t中字符的映射关系，然后遍历字符串，检查每个字符的映射关系是否一致，如果不一致就返回False，最后返回True。
+
+```python
+def isIsomorphic(self, s: str, t: str) -> bool:
+        char_map = {}
+        for i in range(len(s)):
+            if s[i] not in char_map:
+                if t[i] in char_map.values():
+                    return False
+                char_map[s[i]] = t[i]
+            else:
+                if char_map[s[i]] != t[i]:
+                    return False
+        return True
+```
+
+## 41. Word Pattern
+题目描述：给定一种规律pattern和一个字符串str，判断str是否遵循相同的规律。这里的规律指的是每个字符在pattern中对应一个单词在str中，并且这个对应关系是双向的，也就是说pattern中的不同字符应该对应str中的不同单词。
+
+利用split函数就行。
+
+## 42. Valid Anagram
+题目描述：给定两个字符串s和t，编写一个函数来判断t是否是s的字母异位词。字母异位词指的是两个字符串中每个字符出现的次数都相同，但字符的顺序可以不同。
+
+利用Counter，一行就行。
+
+## 43. Group Anagrams
+题目描述：给定一个字符串数组，将字母异位词组合在一起。字母异位词指的是字母相同，但排列不同的字符串。可以按任意顺序返回结果列表。
+
+我原本打算用Counter来统计每个字符串中字符的数量，然后把这些统计结果作为键来分组，但是Counter对象不能作为字典的键，所以我用sorted函数来把字符串中的字符排序，然后把排序后的字符串作为键来分组。
+
+```python
+def groupAnagrams(self, strs: List[str]) -> List[List[str]]:
+        char_map = {}
+        for word in strs:
+            key = "".join(sorted(word))
+            if key not in char_map:
+                char_map[key] = []
+            char_map[key].append(word)
+        return list(char_map.values())
+```
+
+# 我的copilot过期了，接下来不写问题描述了。
+
+## 44. Two Sum
+我只能想到先sort再左右指针的做法，时间复杂度是O(nlogn)，ai告诉我可以先存下所有数在哈希表里，然后再遍历一遍看每个数和目标的差在不在表里。
+
+## 45. Happy Number
+很简单，只需要写一个函数来把一个数变成它下一个数，使用先变成字符串，然后变成list，再求和就行。用一个字典记录出现过的数，如果到1或者重复就退出。
+
+
